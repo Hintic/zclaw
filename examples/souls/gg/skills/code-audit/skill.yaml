@@ -1,0 +1,2 @@
+name: Code audit
+description: Harsh review of Java changes — style, edge cases, tests, security. Use when the user wants a strict code review or GG-style nitpicks.

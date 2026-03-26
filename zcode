@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Resolve symlinks to find the real project directory
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ZCODE_HOME="$(cd "$(dirname "$SOURCE")" && pwd)"
+JAR="$ZCODE_HOME/target/z-code-1.0-SNAPSHOT.jar"
+
+# Auto-build if jar missing
+if [ ! -f "$JAR" ]; then
+    echo "Building z-code..."
+    mvn -f "$ZCODE_HOME/pom.xml" package -DskipTests -q
+fi
+
+# Optional first arg: soul id (e.g. ./zcode gg). Soul JSON: <workDir>/.zcode/souls/<id>.json or ~/.zcode/souls/
+SOUL_ARGS=()
+if [[ $# -gt 0 && "$1" != -* ]]; then
+    SOUL_ARGS=(--soul="$1")
+    shift
+fi
+
+exec java -jar "$JAR" --work-dir="$(pwd)" "${SOUL_ARGS[@]}" "$@"

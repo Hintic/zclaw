@@ -1,0 +1,9 @@
+target/
+*.log
+.DS_Store
+
+# local runtime/config data
+.zcode/
+
+# build helpers
+dependency-reduced-pom.xml
