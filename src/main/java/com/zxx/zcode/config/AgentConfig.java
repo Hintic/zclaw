@@ -1,6 +1,7 @@
 package com.zxx.zcode.config;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zxx.zcode.soul.SoulLoader;
 import com.zxx.zcode.soul.SoulProfile;
@@ -18,6 +19,8 @@ import java.util.Map;
 public class AgentConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfig.class);
+    /** Optional process-wide override for config dir, resolved before loading config.json. */
+    private static volatile Path configDirOverride;
 
     /** When unset, non-default souls auto-enable soul_inbox polling at this interval (seconds). */
     public static final int DEFAULT_SOUL_MAIL_POLL_SECONDS = 10;
@@ -43,6 +46,19 @@ public class AgentConfig {
      * {@code -1} means unset (after {@link #fromArgs} resolves: 0 for default soul, else {@link #DEFAULT_SOUL_MAIL_POLL_SECONDS}).
      */
     private int soulMailPollSeconds;
+    /** When true, register Playwright browser tool (Chromium). */
+    private boolean browserEnabled;
+    /**
+     * Playwright browser channel: {@code chrome} uses installed Google Chrome; {@code msedge} uses Edge;
+     * empty or {@code bundled} uses Playwright-managed Chromium (run {@code playwright install chromium}).
+     */
+    private String browserChannel;
+    /** Shortcut habit simplification: full request first, suggest second, auto from third. */
+    private boolean habitSimplifyEnabled;
+    /** Whether AUTO execution is allowed after suggest-confirm learning. */
+    private boolean habitAutoEnabled;
+    /** Max chars considered a shorthand input. */
+    private int habitShortInputMaxChars;
 
     public AgentConfig() {
         this.baseUrl = "http://aigw.fx.ctripcorp.com/llm/100000420";
@@ -59,10 +75,18 @@ public class AgentConfig {
         this.memoryEnabled = true;
         this.soulId = "";
         this.soulMailPollSeconds = -1;
+        this.browserEnabled = false;
+        this.browserChannel = "chrome";
+        this.habitSimplifyEnabled = true;
+        this.habitAutoEnabled = true;
+        this.habitShortInputMaxChars = 18;
     }
 
     public static AgentConfig fromArgs(String[] args) {
         AgentConfig config = new AgentConfig();
+
+        // Pre-scan config-dir first so config.json load can honor it.
+        applyConfigDirOverrideFromArgs(args);
 
         // 1. Load from ~/.zcode/config.json (lowest priority)
         config.loadConfigFile();
@@ -93,6 +117,21 @@ public class AgentConfig {
         if (envMailPoll != null && !envMailPoll.isBlank()) {
             config.applySoulMailPollArg(envMailPoll);
         }
+        String envBrowser = System.getenv("ZCODE_BROWSER");
+        if (envBrowser != null && !envBrowser.isEmpty()) {
+            config.browserEnabled = Boolean.parseBoolean(envBrowser);
+        }
+        if (System.getenv("ZCODE_BROWSER_CHANNEL") != null) {
+            config.browserChannel = System.getenv("ZCODE_BROWSER_CHANNEL").trim();
+        }
+        String envHabit = System.getenv("ZCODE_HABIT_SIMPLIFY");
+        if (envHabit != null && !envHabit.isBlank()) {
+            config.habitSimplifyEnabled = Boolean.parseBoolean(envHabit.trim());
+        }
+        String envHabitAuto = System.getenv("ZCODE_HABIT_AUTO");
+        if (envHabitAuto != null && !envHabitAuto.isBlank()) {
+            config.habitAutoEnabled = Boolean.parseBoolean(envHabitAuto.trim());
+        }
 
         // 3. Override with command line args (highest priority)
         for (int i = 0; i < args.length; i++) {
@@ -115,6 +154,23 @@ public class AgentConfig {
                 config.webSearchModel = arg.substring("--web-search-model=".length());
             } else if (arg.startsWith("--memory=")) {
                 config.memoryEnabled = Boolean.parseBoolean(arg.substring("--memory=".length()));
+            } else if (arg.startsWith("--browser=")) {
+                config.browserEnabled = Boolean.parseBoolean(arg.substring("--browser=".length()));
+            } else if (arg.startsWith("--browser-channel=")) {
+                config.browserChannel = arg.substring("--browser-channel=".length()).trim();
+            } else if ("--browser-channel".equals(arg) && i + 1 < args.length) {
+                config.browserChannel = args[++i].trim();
+            } else if (arg.startsWith("--habit-simplify=")) {
+                config.habitSimplifyEnabled = Boolean.parseBoolean(arg.substring("--habit-simplify=".length()));
+            } else if (arg.startsWith("--habit-auto=")) {
+                config.habitAutoEnabled = Boolean.parseBoolean(arg.substring("--habit-auto=".length()));
+            } else if (arg.startsWith("--habit-short-max-chars=")) {
+                try {
+                    config.habitShortInputMaxChars = Math.max(2,
+                            Integer.parseInt(arg.substring("--habit-short-max-chars=".length())));
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid --habit-short-max-chars value: {}", arg);
+                }
             } else if (arg.startsWith("--soul=")) {
                 config.soulId = normalizeSoulId(arg.substring("--soul=".length()));
             } else if ("--soul".equals(arg)) {
@@ -133,6 +189,13 @@ public class AgentConfig {
                 if (i + 1 < args.length) {
                     config.applySoulMailPollArg(args[++i]);
                 }
+            } else if (arg.startsWith("--config-dir=")) {
+                // Already handled in pre-scan; keep this branch for explicitness.
+                setConfigDirOverride(arg.substring("--config-dir=".length()));
+            } else if ("--config-dir".equals(arg)) {
+                if (i + 1 < args.length) {
+                    setConfigDirOverride(args[++i]);
+                }
             }
         }
 
@@ -142,9 +205,11 @@ public class AgentConfig {
             config.soulMailPollSeconds = config.soulProfile.isDefault() ? 0 : DEFAULT_SOUL_MAIL_POLL_SECONDS;
         }
 
-        log.info("Config loaded: apiProvider={}, model={}, baseUrl={}, webSearch={}, memory={}, soul={}, soulMailPoll={}s",
-                config.apiProvider, config.model, config.baseUrl, config.webSearchEnabled, config.memoryEnabled,
-                config.soulProfile.getId(), config.soulMailPollSeconds);
+        log.info("Config loaded: apiProvider={}, model={}, baseUrl={}, webSearch={}, browser={} (channel={}), memory={}, habit={} (auto={}, shortMax={}), soul={}, soulMailPoll={}s",
+                config.apiProvider, config.model, config.baseUrl, config.webSearchEnabled, config.browserEnabled,
+                config.browserChannelDisplay(), config.memoryEnabled, config.habitSimplifyEnabled,
+                config.habitAutoEnabled, config.habitShortInputMaxChars, config.soulProfile.getId(),
+                config.soulMailPollSeconds);
         return config;
     }
 
@@ -201,6 +266,23 @@ public class AgentConfig {
             if (map.containsKey("soul_mail_poll_seconds") && map.get("soul_mail_poll_seconds") instanceof Number n) {
                 this.soulMailPollSeconds = Math.max(0, n.intValue());
             }
+            if (map.containsKey("browser_enabled")) {
+                this.browserEnabled = Boolean.TRUE.equals(map.get("browser_enabled"));
+            }
+            if (map.containsKey("browser_channel") && map.get("browser_channel") != null) {
+                this.browserChannel = map.get("browser_channel").toString().trim();
+            }
+            if (map.containsKey("habit_simplify_enabled")) {
+                this.habitSimplifyEnabled = Boolean.TRUE.equals(map.get("habit_simplify_enabled"));
+            }
+            if (map.containsKey("habit_auto_enabled")) {
+                this.habitAutoEnabled = Boolean.TRUE.equals(map.get("habit_auto_enabled"));
+            }
+            if (map.containsKey("habit_short_input_max_chars") && map.get("habit_short_input_max_chars") instanceof Number n) {
+                this.habitShortInputMaxChars = Math.max(2, n.intValue());
+            }
+        } catch (JsonSyntaxException e) {
+            log.error("Failed to parse config file (malformed JSON): {}", configFile, e);
         } catch (IOException e) {
             log.error("Failed to load config file: {}", configFile, e);
         }
@@ -220,11 +302,50 @@ public class AgentConfig {
     }
 
     public static Path getConfigDir() {
-        return Paths.get(System.getProperty("user.home"), ".zcode");
+        if (configDirOverride != null) {
+            return configDirOverride;
+        }
+        String envDir = System.getenv("ZCODE_CONFIG_DIR");
+        if (envDir != null && !envDir.isBlank()) {
+            return Paths.get(envDir.trim());
+        }
+        String envHome = System.getenv("ZCODE_HOME");
+        if (envHome != null && !envHome.isBlank()) {
+            return Paths.get(envHome.trim()).resolve(".zcode");
+        }
+        // Default: config/data lives under the directory where `zcode` is executed.
+        return Paths.get(System.getProperty("user.dir")).resolve(".zcode");
     }
 
     public static Path getConfigFile() {
         return getConfigDir().resolve("config.json");
+    }
+
+    private static void applyConfigDirOverrideFromArgs(String[] args) {
+        if (args == null || args.length == 0) {
+            return;
+        }
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (arg == null) {
+                continue;
+            }
+            if (arg.startsWith("--config-dir=")) {
+                setConfigDirOverride(arg.substring("--config-dir=".length()));
+                return;
+            }
+            if ("--config-dir".equals(arg) && i + 1 < args.length) {
+                setConfigDirOverride(args[i + 1]);
+                return;
+            }
+        }
+    }
+
+    private static void setConfigDirOverride(String rawPath) {
+        if (rawPath == null || rawPath.isBlank()) {
+            return;
+        }
+        configDirOverride = Paths.get(rawPath.trim());
     }
 
     public String getBaseUrl() { return baseUrl; }
@@ -234,6 +355,28 @@ public class AgentConfig {
     public int getMaxConversationMessages() { return maxConversationMessages; }
     public String getApiProvider() { return apiProvider; }
     public boolean isWebSearchEnabled() { return webSearchEnabled; }
+    public boolean isBrowserEnabled() { return browserEnabled; }
+    public boolean isHabitSimplifyEnabled() { return habitSimplifyEnabled; }
+    public boolean isHabitAutoEnabled() { return habitAutoEnabled; }
+    public int getHabitShortInputMaxChars() { return Math.max(2, habitShortInputMaxChars); }
+
+    /** Playwright launch channel, or empty / {@code bundled} for bundled Chromium. */
+    public String getBrowserChannel() {
+        return browserChannel == null ? "" : browserChannel.trim();
+    }
+
+    /** For logs only (bundled vs channel name). */
+    public String browserChannelDisplay() {
+        String c = getBrowserChannel();
+        if (c.isEmpty() || "bundled".equalsIgnoreCase(c)) {
+            return "bundled";
+        }
+        return c;
+    }
+
+    public void setBrowserChannel(String browserChannel) {
+        this.browserChannel = browserChannel;
+    }
     public int getWebSearchMaxUses() { return webSearchMaxUses; }
     public List<String> getWebSearchAllowedDomains() { return webSearchAllowedDomains; }
     public List<String> getWebSearchBlockedDomains() { return webSearchBlockedDomains; }
@@ -257,6 +400,12 @@ public class AgentConfig {
     public void setWorkDir(Path workDir) { this.workDir = workDir; }
     public void setApiProvider(String apiProvider) { this.apiProvider = apiProvider; }
     public void setWebSearchEnabled(boolean webSearchEnabled) { this.webSearchEnabled = webSearchEnabled; }
+    public void setBrowserEnabled(boolean browserEnabled) { this.browserEnabled = browserEnabled; }
+    public void setHabitSimplifyEnabled(boolean habitSimplifyEnabled) { this.habitSimplifyEnabled = habitSimplifyEnabled; }
+    public void setHabitAutoEnabled(boolean habitAutoEnabled) { this.habitAutoEnabled = habitAutoEnabled; }
+    public void setHabitShortInputMaxChars(int habitShortInputMaxChars) {
+        this.habitShortInputMaxChars = Math.max(2, habitShortInputMaxChars);
+    }
     public void setWebSearchMaxUses(int webSearchMaxUses) { this.webSearchMaxUses = webSearchMaxUses; }
     public void setWebSearchModel(String webSearchModel) { this.webSearchModel = webSearchModel; }
     public void setMemoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; }

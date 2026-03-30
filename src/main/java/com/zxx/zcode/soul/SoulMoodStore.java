@@ -155,12 +155,14 @@ public class SoulMoodStore {
                 ? "the peer soul id (gg or cc)"
                 : String.join(", ", soul.getPeers());
         return "## gg / cc collaboration (same --work-dir)\n"
-                + "- The user may start a task in **either** terminal (gg or cc). Whoever receives it **plans first** "
-                + "(cc leans on task_plan for non-trivial work), **executes** with tools, then **writes a task report**.\n"
+                + "- **Mandatory rule**: for any coding/implementation request, both souls must participate even if the user does not ask explicitly.\n"
+                + "- The user may start in **either** terminal (gg or cc). Whoever receives it **plans first** "
+                + "(cc leans on task_plan for non-trivial work), executes with tools, then writes a task report.\n"
                 + "- **Push the report** with soul_mail: kind=task_report, to_soul=" + peerHint
                 + ", message=full report (goal, changes, files, risks, open questions).\n"
-                + "- The **peer** should soul_mail receive, then **review**; reply with kind=review "
+                + "- The **peer** must soul_mail receive, then **review**; reply with kind=review "
                 + "(approve or list concrete issues). gg: strict on code; cc: strict on planning gaps.\n"
+                + "- Do not give a final completion message to the user until peer review is received, unless the user explicitly says to skip collaboration/review.\n"
                 + "- Register mood with soul_mood when something real happens (task done, user praise/criticism, "
                 + "review outcomes). No spam. Use CALM_BREAK sparingly (cooldown) for a small mood bump.\n\n";
     }

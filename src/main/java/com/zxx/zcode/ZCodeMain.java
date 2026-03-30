@@ -3,6 +3,7 @@ package com.zxx.zcode;
 import com.zxx.zcode.agent.AgentLoop;
 import com.zxx.zcode.cli.AgentCli;
 import com.zxx.zcode.config.AgentConfig;
+import com.zxx.zcode.habit.HabitEngine;
 import com.zxx.zcode.llm.LLMClient;
 import com.zxx.zcode.llm.LLMClientFactory;
 import com.zxx.zcode.tool.*;
@@ -44,8 +45,21 @@ public class ZCodeMain {
             log.info("Web search disabled");
         }
 
+        if (config.isBrowserEnabled()) {
+            toolRegistry.register(new BrowserTool(config.getWorkDir(), config.getBrowserChannel()));
+            log.info("Browser automation enabled (Playwright, channel={})", config.browserChannelDisplay());
+        } else {
+            log.info("Browser automation disabled (set browser_enabled or ZCODE_BROWSER=true or --browser=true)");
+        }
+
         // Initialize agent loop
         AgentLoop agentLoop = new AgentLoop(config, llmClient, toolRegistry, out);
+        HabitEngine habitEngine = new HabitEngine(
+                config.getWorkDir(),
+                config.getSoulId(),
+                config.isHabitSimplifyEnabled(),
+                config.isHabitAutoEnabled(),
+                config.getHabitShortInputMaxChars());
 
         log.info("z-code started: provider={}, model={}, workDir={}",
                 config.getApiProvider(), config.getModel(), config.getWorkDir());
@@ -57,10 +71,13 @@ public class ZCodeMain {
                 config.getModel(),
                 config.getSoulProfile(),
                 out,
-                config.getSoulMailPollSeconds());
-        cli.run();
-
-        // Cleanup
-        llmClient.shutdown();
+                config.getSoulMailPollSeconds(),
+                habitEngine);
+        try {
+            cli.run();
+        } finally {
+            BrowserTool.shutdownQuietly();
+            llmClient.shutdown();
+        }
     }
 }

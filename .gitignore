@@ -1,6 +1,7 @@
 target/
 *.log
 .DS_Store
+.idea/
 
 # local runtime/config data
 .zcode/

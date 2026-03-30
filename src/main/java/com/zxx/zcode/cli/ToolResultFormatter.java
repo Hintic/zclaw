@@ -38,6 +38,7 @@ public class ToolResultFormatter {
             case "task_plan" -> formatTaskPlan(result);
             case "soul_mail" -> formatSoulMail(result);
             case "soul_mood" -> formatSoulMood(result);
+            case "browser" -> formatBrowser(result);
             default -> formatDefault(toolName, result);
         };
     }
@@ -311,6 +312,28 @@ public class ToolResultFormatter {
         sb.append(YELLOW).append("  ◆ mood").append(RESET).append('\n');
         for (String line : result.lines().toList()) {
             sb.append(GRAY).append("  ").append(line).append(RESET).append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    private String formatBrowser(String result) {
+        if (result == null || result.isEmpty()) {
+            return GRAY + "  (no result)" + RESET;
+        }
+        if (result.startsWith("Error:")) {
+            return RED + "  " + result + RESET;
+        }
+        int previewLines = 12;
+        List<String> lines = result.lines().toList();
+        StringBuilder sb = new StringBuilder();
+        sb.append(CYAN).append("  browser").append(RESET).append('\n');
+        int shown = Math.min(lines.size(), previewLines);
+        for (int i = 0; i < shown; i++) {
+            sb.append(GRAY).append("  ").append(lines.get(i)).append(RESET).append('\n');
+        }
+        if (lines.size() > previewLines) {
+            sb.append(GRAY).append("  ... ").append(lines.size() - previewLines).append(" more lines")
+                    .append(RESET).append('\n');
         }
         return sb.toString().trim();
     }

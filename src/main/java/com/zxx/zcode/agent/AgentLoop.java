@@ -107,6 +107,11 @@ public class AgentLoop {
         if (config.isWebSearchEnabled() && "anthropic".equals(config.getApiProvider())) {
             sb.append("- web_search: Search the web for real-time information (built-in, auto-triggered)\n");
         }
+        if (config.isBrowserEnabled()) {
+            sb.append("- browser: Automate local browser (Playwright); default channel is Google Chrome when installed; ");
+            sb.append("launch, navigate, click, fill, wait_for, content, screenshot, evaluate; only http(s) URLs; ");
+            sb.append("screenshots under work dir\n");
+        }
         sb.append("\n");
 
         sb.append("## Multi-instance collaboration\n");
