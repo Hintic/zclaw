@@ -6,12 +6,12 @@
 
 | 组件 | 文件 | 改动 |
 |------|------|------|
-| `ContentBlock.java` | `src/main/java/com/zxx/zcode/llm/model/ContentBlock.java` | 新增 `thinking` 类型 |
-| `AnthropicChatResponse.java` | `src/main/java/com/zxx/zcode/llm/model/AnthropicChatResponse.java` | 解析 `type: "thinking"` → 丢弃 |
-| `LLMResponse.java` | `src/main/java/com/zxx/zcode/llm/model/LLMResponse.java` | 过滤掉 `thinking` block 内容 |
+| `ContentBlock.java` | `src/main/java/com/zxx/zclaw/llm/model/ContentBlock.java` | 新增 `thinking` 类型 |
+| `AnthropicChatResponse.java` | `src/main/java/com/zxx/zclaw/llm/model/AnthropicChatResponse.java` | 解析 `type: "thinking"` → 丢弃 |
+| `LLMResponse.java` | `src/main/java/com/zxx/zclaw/llm/model/LLMResponse.java` | 过滤掉 `thinking` block 内容 |
 
 **验收标准**：
-- [ ] 启动 `java -jar target/z-code-1.0-SNAPSHOT.jar --work-dir=. --api-provider=anthropic` 向 Agent 提问（如果模型返回 thinking block）
+- [ ] 启动 `java -jar target/zclaw-1.0-SNAPSHOT.jar --work-dir=. --api-provider=anthropic` 向 Agent 提问（如果模型返回 thinking block）
 - [ ] thinking block 内容**不显示**在终端输出中
 
 ---
@@ -25,8 +25,8 @@
 | 组件 | 文件 | 改动 |
 |------|------|------|
 | `pom.xml` | `pom.xml` | 新增 `com.github.voidwell:markdownwriter:1.0.0` 依赖 |
-| `MarkdownRenderer.java` | `src/main/java/com/zxx/zcode/cli/MarkdownRenderer.java` | **新建** — 渲染 markdown 到 ANSI 转义序列 |
-| `AgentCli.java` | `src/main/java/com/zxx/zcode/cli/AgentCli.java` | 替换 `out.println(response)` 为 `markdownRenderer.render(response)` |
+| `MarkdownRenderer.java` | `src/main/java/com/zxx/zclaw/cli/MarkdownRenderer.java` | **新建** — 渲染 markdown 到 ANSI 转义序列 |
+| `AgentCli.java` | `src/main/java/com/zxx/zclaw/cli/AgentCli.java` | 替换 `out.println(response)` 为 `markdownRenderer.render(response)` |
 
 **验收标准**：
 - [ ] 代码块（\`\`\`）有语法高亮（语言标识符识别但不强制做完整语法高亮，基础颜色区分即可）
@@ -43,11 +43,11 @@
 
 | 组件 | 文件 | 改动 |
 |------|------|------|
-| `LLMClient.java` | `src/main/java/com/zxx/zcode/llm/LLMClient.java` | 新增 `chatStream()` 方法（返回 `Iterator<LLMResponse>` 或 `Flux<String>` 的等价物） |
-| `OpenAILLMClient.java` | `src/main/java/com/zxx/zcode/llm/OpenAILLMClient.java` | 实现 SSE 版本的 `chatStream()` |
-| `AnthropicLLMClient.java` | `src/main/java/com/zxx/zcode/llm/AnthropicLLMClient.java` | 实现 SSE 版本的 `chatStream()`（使用 `text/event-stream` Accept header） |
-| `AgentLoop.java` | `src/main/java/com/zxx/zcode/agent/AgentLoop.java` | 工具调用仍用同步 `chat()`；普通回复切换为 `chatStream()` |
-| `ThinkingIndicator.java` | `src/main/java/com/zxx/zcode/cli/ThinkingIndicator.java` | 流式输出时改为显示 "Streaming..." 进度指示（替代旋转动画） |
+| `LLMClient.java` | `src/main/java/com/zxx/zclaw/llm/LLMClient.java` | 新增 `chatStream()` 方法（返回 `Iterator<LLMResponse>` 或 `Flux<String>` 的等价物） |
+| `OpenAILLMClient.java` | `src/main/java/com/zxx/zclaw/llm/OpenAILLMClient.java` | 实现 SSE 版本的 `chatStream()` |
+| `AnthropicLLMClient.java` | `src/main/java/com/zxx/zclaw/llm/AnthropicLLMClient.java` | 实现 SSE 版本的 `chatStream()`（使用 `text/event-stream` Accept header） |
+| `AgentLoop.java` | `src/main/java/com/zxx/zclaw/agent/AgentLoop.java` | 工具调用仍用同步 `chat()`；普通回复切换为 `chatStream()` |
+| `ThinkingIndicator.java` | `src/main/java/com/zxx/zclaw/cli/ThinkingIndicator.java` | 流式输出时改为显示 "Streaming..." 进度指示（替代旋转动画） |
 
 **流式行为**：
 - SSE 连接建立 → 清空 "Thinking..." 行 → 开始逐字输出

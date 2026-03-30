@@ -4,6 +4,7 @@ target/
 .idea/
 
 # local runtime/config data
+.zclaw/
 .zcode/
 
 # build helpers

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Resolve symlinks to find the real project directory
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ZCLAW_HOME="$(cd "$(dirname "$SOURCE")" && pwd)"
+JAR="$ZCLAW_HOME/target/zclaw-1.0-SNAPSHOT.jar"
+
+# Auto-build if jar missing
+if [ ! -f "$JAR" ]; then
+    echo "Building zclaw..."
+    mvn -f "$ZCLAW_HOME/pom.xml" package -DskipTests -q
+fi
+
+# Optional first arg: soul id (e.g. ./zclaw gg). Soul JSON: <workDir>/.zclaw/souls/<id>.json or ~/.zclaw/souls/
+SOUL_ARGS=()
+if [[ $# -gt 0 && "$1" != -* ]]; then
+    SOUL_ARGS=(--soul="$1")
+    shift
+fi
+
+exec java -jar "$JAR" --work-dir="$(pwd)" "${SOUL_ARGS[@]}" "$@"

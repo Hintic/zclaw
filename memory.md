@@ -1,5 +1,5 @@
 <think>
-The user asked a simple greeting question ("你好，你叫什么名字") and the assistant gave a friendly response introducing themselves as "z-code". 
+The user asked a simple greeting question ("你好，你叫什么名字") and the assistant gave a friendly response introducing themselves as "zclaw". 
 
 I need to merge this into the existing memory.md. Since the user message is just a greeting and doesn't contain any project-specific information, conventions, or decisions, there's nothing meaningful to add to the memory file. The exchange is just a basic introduction.
 

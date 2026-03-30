@@ -1,4 +1,4 @@
 name: Formatting helper (shared example)
 description: >
-  Place shared skill packs here as .zcode/skills/<pack>/ when you copy examples into a work tree.
-  Per-soul packs live under .zcode/souls/<id>/skills/<pack>/.
+  Place shared skill packs here as .zclaw/skills/<pack>/ when you copy examples into a work tree.
+  Per-soul packs live under .zclaw/souls/<id>/skills/<pack>/.

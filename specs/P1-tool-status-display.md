@@ -21,7 +21,7 @@ out.println("\u001B[36m⚡ " + toolName + "\u001B[0m");
 
 ### 1. 新建 `ToolResultFormatter` 类
 
-位置：`src/main/java/com/zxx/zcode/cli/ToolResultFormatter.java`
+位置：`src/main/java/com/zxx/zclaw/cli/ToolResultFormatter.java`
 
 负责将工具执行结果格式化为用户友好的展示字符串。
 
@@ -106,6 +106,6 @@ out.println("\u001B[36m⚡ " + toolName + "\u001B[0m");
 
 | 文件 | 操作 |
 |------|------|
-| `src/main/java/com/zxx/zcode/cli/ToolResultFormatter.java` | 新增 |
-| `src/main/java/com/zxx/zcode/agent/AgentLoop.java` | 修改 |
-| `src/test/java/com/zxx/zcode/cli/ToolResultFormatterTest.java` | 新增 |
+| `src/main/java/com/zxx/zclaw/cli/ToolResultFormatter.java` | 新增 |
+| `src/main/java/com/zxx/zclaw/agent/AgentLoop.java` | 修改 |
+| `src/test/java/com/zxx/zclaw/cli/ToolResultFormatterTest.java` | 新增 |

@@ -3,7 +3,7 @@
 ## 1. 背景
 
 ### 1.1 需求
-z-code 需要联网搜索能力，用于查询实时信息、GitHub 高星项目、技术文档等。
+zclaw 需要联网搜索能力，用于查询实时信息、GitHub 高星项目、技术文档等。
 
 ### 1.2 方案演进
 - **方案 1（已弃用）**：Anthropic 原生 `web_search_20250305` 服务端工具 → Ctrip Gateway 不支持服务端工具透传，搜索变成了空壳的客户端 tool_use
@@ -14,7 +14,7 @@ z-code 需要联网搜索能力，用于查询实时信息、GitHub 高星项目
 ```
 用户提问 → Claude 决定调用 web_search 工具
                 ↓
-    z-code 本地拦截 web_search tool call
+    zclaw 本地拦截 web_search tool call
                 ↓
     调用 Gemini API (with google_search grounding)
                 ↓
@@ -70,8 +70,8 @@ z-code 需要联网搜索能力，用于查询实时信息、GitHub 高星项目
 
 ### 2.2 用户体验
 
-1. 用户在 `~/.zcode/config.json` 中配置 `web_search_model`（可选，默认 `gemini-2.5-flash`）
-2. 启动 z-code 时，若 `web_search_enabled=true`，自动注册 `web_search` 工具
+1. 用户在 `~/.zclaw/config.json` 中配置 `web_search_model`（可选，默认 `gemini-2.5-flash`）
+2. 启动 zclaw 时，若 `web_search_enabled=true`，自动注册 `web_search` 工具
 3. WebSearchTool **复用现有 `base_url` 和 `api_key`**，通过 Gateway 路由到 Gemini 模型
 4. Claude 根据问题自行决定是否调用搜索（通过 system prompt 中的工具描述引导）
 5. 搜索过程在控制台输出日志（搜索词、来源 URL、结果摘要长度）
@@ -79,7 +79,7 @@ z-code 需要联网搜索能力，用于查询实时信息、GitHub 高星项目
 
 ### 2.3 配置
 
-`~/.zcode/config.json` 新增字段：
+`~/.zclaw/config.json` 新增字段：
 
 ```json
 {
@@ -107,7 +107,7 @@ CLI 参数：`--web-search-model=gemini-2.0-flash`
 
 ### 3.1 WebSearchTool
 
-新增 `src/main/java/com/zxx/zcode/tool/WebSearchTool.java`，实现 `Tool` 接口：
+新增 `src/main/java/com/zxx/zclaw/tool/WebSearchTool.java`，实现 `Tool` 接口：
 
 ```java
 public class WebSearchTool implements Tool {
@@ -235,7 +235,7 @@ Use the above search results to answer the user's question. Cite sources when re
 
 ### 3.4 Gemini 响应模型
 
-新增 `src/main/java/com/zxx/zcode/llm/model/GeminiResponse.java`：
+新增 `src/main/java/com/zxx/zclaw/llm/model/GeminiResponse.java`：
 
 ```java
 public class GeminiResponse {
@@ -298,7 +298,7 @@ if (map.containsKey("web_search_model")) {
 // --web-search-model=gemini-2.0-flash
 ```
 
-### 3.6 ZCodeMain 改造
+### 3.6 ZClawMain 改造
 
 ```java
 // 工具注册（在现有 6 个工具之后）
@@ -347,7 +347,7 @@ answer, cite the source URLs.
         URL: http://aigw.fx.ctripcorp.com/llm/100000420/v1beta/models/gemini-2.5-flash:generateContent
         Response body: {"error":{"code":429,"message":"Resource has been exhausted..."}}
         java.io.IOException: Gemini API error 429: Resource has been exhausted
-            at com.zxx.zcode.tool.WebSearchTool.execute(WebSearchTool.java:87)
+            at com.zxx.zclaw.tool.WebSearchTool.execute(WebSearchTool.java:87)
 ```
 
 ### 3.9 错误处理
@@ -379,7 +379,7 @@ answer, cite the source URLs.
 | 文件 | 修改内容 |
 |------|---------|
 | `config/AgentConfig.java` | 新增 `webSearchModel` 字段及读取逻辑 |
-| `ZCodeMain.java` | 条件注册 WebSearchTool |
+| `ZClawMain.java` | 条件注册 WebSearchTool |
 
 **不需要修改**：`LLMClient`、`AgentLoop`、`ToolRegistry`、`Message`——因为 WebSearchTool 是标准的客户端 Tool，完全复用现有机制。
 
@@ -403,7 +403,7 @@ answer, cite the source URLs.
 - 完善日志和错误处理
 - 单元测试（MockWebServer 模拟 Gemini API）
 
-### Step 4: ZCodeMain 集成
+### Step 4: ZClawMain 集成
 - 条件注册 WebSearchTool
 - 端到端手动测试
 

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.zxx</groupId>
-    <artifactId>z-code</artifactId>
+    <artifactId>zclaw</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -93,7 +93,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.zxx.zcode.ZCodeMain</mainClass>
+                            <mainClass>com.zxx.zclaw.ZClawMain</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -116,7 +116,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.zxx.zcode.ZCodeMain</mainClass>
+                                    <mainClass>com.zxx.zclaw.ZClawMain</mainClass>
                                 </transformer>
                             </transformers>
                             <filters>

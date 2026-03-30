@@ -10,7 +10,7 @@
 
 ```
 ╭────────────────────────────────────────────╮
-│  ✻ z-code v1.0                             │
+│  ✻ zclaw v1.0                             │
 │                                            │
 │  Model: claude-opus-4-6-v1                 │
 │  Work dir: ~/IdeaProjects/my-project       │
@@ -24,7 +24,7 @@
 
   ⠹ Thinking...          ← 旋转动画，原地覆盖
 
-  ✻ z-code
+  ✻ zclaw
 
   Java 有几个流行的 Agent 框架...
 
@@ -32,7 +32,7 @@
 
   ⠼ Thinking...          ← 每次 llmClient.chat() 前都显示
 
-  ✻ z-code
+  ✻ zclaw
 
   最终回复内容...
 
@@ -72,7 +72,7 @@
 
 #### ThinkingIndicator 类
 
-新建 `com.zxx.zcode.cli.ThinkingIndicator`：
+新建 `com.zxx.zclaw.cli.ThinkingIndicator`：
 
 ```java
 public class ThinkingIndicator {
@@ -157,17 +157,17 @@ public class AgentLoop {
 ### 3.4 AgentCli 调整
 
 - 保持现有输入框逻辑
-- `✻ z-code` 标识移到 AgentLoop 的 thinking indicator 停止后、输出响应前
-- 实际上 `✻ z-code` 仍由 AgentCli 在 `processInput` 返回前打印
+- `✻ zclaw` 标识移到 AgentLoop 的 thinking indicator 停止后、输出响应前
+- 实际上 `✻ zclaw` 仍由 AgentCli 在 `processInput` 返回前打印
 
 ## 4. 修改文件清单
 
 | 文件 | 操作 |
 |------|------|
-| `src/main/java/com/zxx/zcode/cli/ThinkingIndicator.java` | **新建** |
-| `src/main/java/com/zxx/zcode/agent/AgentLoop.java` | 修改：集成 ThinkingIndicator |
-| `src/main/java/com/zxx/zcode/cli/AgentCli.java` | 微调（如有需要） |
-| `src/test/java/com/zxx/zcode/cli/ThinkingIndicatorTest.java` | **新建**：单元测试 |
+| `src/main/java/com/zxx/zclaw/cli/ThinkingIndicator.java` | **新建** |
+| `src/main/java/com/zxx/zclaw/agent/AgentLoop.java` | 修改：集成 ThinkingIndicator |
+| `src/main/java/com/zxx/zclaw/cli/AgentCli.java` | 微调（如有需要） |
+| `src/test/java/com/zxx/zclaw/cli/ThinkingIndicatorTest.java` | **新建**：单元测试 |
 
 ## 5. 验收标准
 
@@ -176,7 +176,7 @@ public class AgentLoop {
 3. **每次 `llmClient.chat()` 期间，终端显示旋转 spinner + "Thinking..."**
 4. **spinner 在 LLM 返回后立即消失，不留残余字符**
 5. **多轮 tool call 时，每次 LLM 调用都有独立的 thinking 动画**
-6. 助理回复前显示 `✻ z-code` 标识
+6. 助理回复前显示 `✻ zclaw` 标识
 7. slash command 输出不显示 thinking 动画
 8. Ctrl+C / Ctrl+D 正常工作
 9. 现有测试全部通过

@@ -3,19 +3,19 @@
 ## 1. 背景与问题
 
 ### 1.1 需求
-z-code 在做技术方案时需要具备联网搜索能力，能够查询实时信息、GitHub 高星项目、技术文档等，提供专家级分析（参考 Claude Code 的 WebSearch 能力）。
+zclaw 在做技术方案时需要具备联网搜索能力，能够查询实时信息、GitHub 高星项目、技术文档等，提供专家级分析（参考 Claude Code 的 WebSearch 能力）。
 
 ### 1.2 核心问题：API 格式不兼容
 
-Claude 的内置 web search 是 **Anthropic Messages API 的原生功能**，使用专有的工具类型和响应格式。而 z-code 当前使用的是 **OpenAI 兼容格式**（`/v1/chat/completions`）调用 Ctrip AI Gateway。
+Claude 的内置 web search 是 **Anthropic Messages API 的原生功能**，使用专有的工具类型和响应格式。而 zclaw 当前使用的是 **OpenAI 兼容格式**（`/v1/chat/completions`）调用 Ctrip AI Gateway。
 
-| 维度 | 当前 z-code（OpenAI 格式） | Claude Web Search（Anthropic 格式） |
+| 维度 | 当前 zclaw（OpenAI 格式） | Claude Web Search（Anthropic 格式） |
 |------|--------------------------|-------------------------------------|
 | 端点 | `/v1/chat/completions` | `/v1/messages` |
 | 工具声明 | `{"type": "function", "function": {...}}` | `{"type": "web_search_20250305", "name": "web_search", ...}` |
 | 响应格式 | `choices[0].message.content` | `content: [{type: "text"}, {type: "server_tool_use"}, ...]` |
 | 工具调用 | `tool_calls[].function.name/arguments` | `content` 数组中的 `server_tool_use` block |
-| 工具结果 | z-code 本地执行后发回 | 服务端自动执行，结果直接在响应的 `web_search_tool_result` block 中返回 |
+| 工具结果 | zclaw 本地执行后发回 | 服务端自动执行，结果直接在响应的 `web_search_tool_result` block 中返回 |
 | Auth Header | `Authorization: Bearer {key}` | `x-api-key: {key}` + `anthropic-version: 2023-06-01` |
 
 **结论：无法在 OpenAI 兼容格式上使用 Claude 内置 web search，必须支持 Anthropic Messages API。**
@@ -50,15 +50,15 @@ Claude 的内置 web search 是 **Anthropic Messages API 的原生功能**，使
 
 ### 2.2 用户体验
 
-- 用户在 `~/.zcode/config.json` 中配置 `api_provider` 为 `"anthropic"`（或保持 `"openai"` 使用现有 Gateway）
+- 用户在 `~/.zclaw/config.json` 中配置 `api_provider` 为 `"anthropic"`（或保持 `"openai"` 使用现有 Gateway）
 - 配置 Anthropic API key 后，web search 自动可用
 - LLM 自动决定何时搜索（与 Claude Code 行为一致）
 - 搜索结果带来源 URL 引用，用户可以验证信息
-- z-code 控制台输出搜索过程日志（搜索词、结果数量、来源等）
+- zclaw 控制台输出搜索过程日志（搜索词、结果数量、来源等）
 
 ### 2.3 配置变更
 
-`~/.zcode/config.json` 新增字段：
+`~/.zclaw/config.json` 新增字段：
 
 ```json
 {
@@ -83,7 +83,7 @@ Claude 的内置 web search 是 **Anthropic Messages API 的原生功能**，使
 
 CLI 参数新增：`--api-provider=anthropic`
 
-环境变量新增：`ZCODE_API_PROVIDER`
+环境变量新增：`ZCLAW_API_PROVIDER`
 
 ---
 
@@ -163,7 +163,7 @@ public class AnthropicChatRequest {
 {
   "model": "claude-sonnet-4-20250514",
   "max_tokens": 8192,
-  "system": "You are z-code...",
+  "system": "You are zclaw...",
   "messages": [
     {"role": "user", "content": "搜索一下 Java Agent 框架有哪些"}
   ],
@@ -410,8 +410,8 @@ public class LLMClientFactory {
         URL: https://api.anthropic.com/v1/messages
         Response: {"error":{"type":"rate_limit_error","message":"..."}}
         java.io.IOException: LLM API error 429: ...
-            at com.zxx.zcode.llm.AnthropicLLMClient.chat(AnthropicLLMClient.java:85)
-            at com.zxx.zcode.agent.AgentLoop.processInput(AgentLoop.java:78)
+            at com.zxx.zclaw.llm.AnthropicLLMClient.chat(AnthropicLLMClient.java:85)
+            at com.zxx.zclaw.agent.AgentLoop.processInput(AgentLoop.java:78)
             ...
 ```
 
@@ -441,7 +441,7 @@ public class LLMClientFactory {
 | `config/AgentConfig.java` | 新增 `apiProvider`、`webSearchEnabled`、`webSearchMaxUses` 等字段 |
 | `llm/model/Message.java` | `content` 改为 `Object` 类型，支持 String 和 List<ContentBlock>；新增 Anthropic 工厂方法 |
 | `agent/AgentLoop.java` | 使用 `LLMClient` 接口 + `LLMResponse`；新增 web search 结果输出 |
-| `ZCodeMain.java` | 使用 `LLMClientFactory` 创建 Client |
+| `ZClawMain.java` | 使用 `LLMClientFactory` 创建 Client |
 | `agent/AgentLoop.java` → `buildSystemPrompt()` | 新增 web_search 工具说明 |
 
 ---
@@ -571,6 +571,6 @@ public class LLMClientFactory {
 
 1. **Ctrip AI Gateway 兼容性**：Gateway 是否支持 Anthropic Messages API 格式（`/v1/messages`）未知。若支持，可直接用 Gateway；若不支持，需直连 Anthropic API（需要额外的 Anthropic API Key）
 2. **费用**：Web search 有额外的搜索费用（$10/1000 次搜索），需在文档中提示用户
-3. **encrypted_content**：Anthropic 返回的搜索结果内容是加密的，仅供模型内部使用，z-code 不需要也无法解密
+3. **encrypted_content**：Anthropic 返回的搜索结果内容是加密的，仅供模型内部使用，zclaw 不需要也无法解密
 4. **Anthropic API 版本**：当前使用 `anthropic-version: 2023-06-01`，web search 工具类型版本为 `web_search_20250305`，后续版本可能变更
 5. **Message content 多态**：Anthropic 的 `content` 字段可以是 string 或 array，需要 Gson 自定义反序列化器，这是实现中最容易出错的部分
